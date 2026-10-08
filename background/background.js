@@ -1,5 +1,7 @@
 // FlixRatings - Background Service Worker (Manifest V3)
 
+const EXTENSION_VERSION = '0.5.0';
+
 // In-flight request deduplication map
 const inFlightRequests = new Map();
 
@@ -11,24 +13,38 @@ const MAX_CONCURRENT_REQUESTS = 5;
 let activeRequests = 0;
 const queue = [];
 
-// Automatic sanitizer on startup to purge any bad legacy cached queries
+// Automatic schema upgrade & cache sanitization on startup
 (async () => {
   try {
+    const { schemaVersion } = await chrome.storage.local.get(['schemaVersion']);
     const all = await chrome.storage.local.get(null);
     const toRemove = [];
+
+    // Purge bad legacy queries or upgrade cache for v0.5.0 to fetch fresh Metacritic scores
     for (const key of Object.keys(all)) {
       if (key.startsWith('rating_')) {
         const titlePart = key.replace('rating_', '');
-        if (titlePart.includes('riproduci') || titlePart.includes('play') || titlePart.includes('altre_info') || titlePart.length < 2) {
+        if (schemaVersion !== EXTENSION_VERSION ||
+            titlePart.includes('riproduci') || 
+            titlePart.includes('play') || 
+            titlePart.includes('altre_info') || 
+            titlePart.length < 2) {
           toRemove.push(key);
         }
       }
     }
+
     if (toRemove.length > 0) {
       await chrome.storage.local.remove(toRemove);
-      console.log(`[FlixRatings] Sanitized ${toRemove.length} invalid cache keys.`);
+      console.log(`[FlixRatings v${EXTENSION_VERSION}] Cleaned ${toRemove.length} cache keys for fresh rating retrieval.`);
     }
-  } catch (e) {}
+
+    if (schemaVersion !== EXTENSION_VERSION) {
+      await chrome.storage.local.set({ schemaVersion: EXTENSION_VERSION });
+    }
+  } catch (e) {
+    console.warn('[FlixRatings] Startup cache migration error:', e);
+  }
 })();
 
 function enqueueRequest(fn) {
@@ -280,6 +296,9 @@ async function getRatingForTitle(rawTitle) {
         if (res.ok) {
           const data = await res.json();
           if (data.Response === 'True' && data.imdbRating && data.imdbRating !== 'N/A') {
+            const rt = (data.Ratings || []).find(r => r.Source === 'Rotten Tomatoes')?.Value || null;
+            const mc = (data.Ratings || []).find(r => r.Source === 'Metacritic')?.Value || 
+                       (data.Metascore && data.Metascore !== 'N/A' ? `${data.Metascore}/100` : null);
             ratingData = {
               found: true,
               title: data.Title,
@@ -287,8 +306,8 @@ async function getRatingForTitle(rawTitle) {
               imdbId: data.imdbID,
               imdbRating: data.imdbRating,
               imdbVotes: data.imdbVotes,
-              rottenTomatoes: (data.Ratings || []).find(r => r.Source === 'Rotten Tomatoes')?.Value || null,
-              metacritic: data.Metascore && data.Metascore !== 'N/A' ? `${data.Metascore}/100` : null,
+              rottenTomatoes: rt,
+              metacritic: mc,
               genres: data.Genre ? data.Genre.split(',').map(s => s.trim()) : [],
               awards: data.Awards || null,
               plot: data.Plot || null,
@@ -303,7 +322,7 @@ async function getRatingForTitle(rawTitle) {
       ratingData = { found: false, title: cleaned };
     }
 
-    console.log(`[FlixRatings] "${cleaned}" => ${ratingData.imdbId || 'N/A'} (Rating: ${ratingData.imdbRating || 'N/A'}, RT: ${ratingData.rottenTomatoes || 'N/A'})`);
+    console.log(`[FlixRatings] "${cleaned}" => ${ratingData.imdbId || 'N/A'} (IMDb: ${ratingData.imdbRating || 'N/A'}, RT: ${ratingData.rottenTomatoes || 'N/A'}, MC: ${ratingData.metacritic || 'N/A'})`);
 
     // Cache result
     memoryCache.set(cacheKey, ratingData);

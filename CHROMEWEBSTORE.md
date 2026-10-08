@@ -84,4 +84,4 @@ Italian
 
 | Version | Date | Changes | Status |
 |---------|------|---------|--------|
-| 1.0.0 | 2026-10-04 | Rilascio iniziale con supporto IMDb, Rotten Tomatoes, caching locale e bob-card preview. | Draft |
+| 0.5.0 | 2026-10-08 | Rilascio iniziale con supporto IMDb, Rotten Tomatoes, caching locale e bob-card preview. | Draft |

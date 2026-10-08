@@ -99,6 +99,55 @@
   font-weight: 700 !important;
 }
 
+/* Metacritic score on card */
+.flixratings-card-badge .mc-score {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 2.5px !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+}
+
+.flixratings-card-badge .mc-tag {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-weight: 900 !important;
+  font-size: 7.5px !important;
+  padding: 1px 2.5px !important;
+  border-radius: 2px !important;
+  line-height: 1 !important;
+  letter-spacing: -0.2px !important;
+}
+
+.flixratings-card-badge .mc-high .mc-tag {
+  background: #66cc33 !important;
+  color: #000000 !important;
+}
+
+.flixratings-card-badge .mc-mid .mc-tag {
+  background: #ffcc33 !important;
+  color: #000000 !important;
+}
+
+.flixratings-card-badge .mc-low .mc-tag {
+  background: #e03b3b !important;
+  color: #ffffff !important;
+}
+
+.flixratings-card-badge .mc-high .mc-val {
+  color: #7ee042 !important;
+}
+
+.flixratings-card-badge .mc-mid .mc-val {
+  color: #ffd84d !important;
+}
+
+.flixratings-card-badge .mc-low .mc-val {
+  color: #ff5252 !important;
+}
+
 /* Ensure boxart container allows positioning */
 .boxart-container, [class*="boxart-container"] {
   position: relative !important;

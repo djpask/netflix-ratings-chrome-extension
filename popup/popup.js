@@ -9,6 +9,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   const selectBadgePosition = document.getElementById('selectBadgePosition');
   const toggleBobRatings = document.getElementById('toggleBobRatings');
   const toggleHighlight = document.getElementById('toggleHighlight');
+  const toggleRt = document.getElementById('toggleRt');
+  const toggleMetacritic = document.getElementById('toggleMetacritic');
 
   // OMDb elements
   const toggleOmdb = document.getElementById('toggleOmdb');
@@ -33,6 +35,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     badgePosition: 'top-right',
     showBobRatings: true,
     highlightMasterpieces: true,
+    showRt: true,
+    showMetacritic: true,
     enableOmdb: false,
     omdbApiKey: ''
   });
@@ -43,6 +47,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   selectBadgePosition.value = settings.badgePosition;
   toggleBobRatings.checked = settings.showBobRatings;
   toggleHighlight.checked = settings.highlightMasterpieces;
+  if (toggleRt) toggleRt.checked = settings.showRt !== false;
+  if (toggleMetacritic) toggleMetacritic.checked = settings.showMetacritic !== false;
   toggleOmdb.checked = settings.enableOmdb;
   omdbApiKey.value = settings.omdbApiKey || '';
 
@@ -83,6 +89,18 @@ document.addEventListener('DOMContentLoaded', async () => {
   toggleHighlight.addEventListener('change', async () => {
     await chrome.storage.local.set({ highlightMasterpieces: toggleHighlight.checked });
   });
+
+  if (toggleRt) {
+    toggleRt.addEventListener('change', async () => {
+      await chrome.storage.local.set({ showRt: toggleRt.checked });
+    });
+  }
+
+  if (toggleMetacritic) {
+    toggleMetacritic.addEventListener('change', async () => {
+      await chrome.storage.local.set({ showMetacritic: toggleMetacritic.checked });
+    });
+  }
 
   toggleOmdb.addEventListener('change', async () => {
     const isChecked = toggleOmdb.checked;

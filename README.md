@@ -1,5 +1,9 @@
 # FlixRatings 🎬⭐
 
+[![Version](https://img.shields.io/badge/version-0.5.0-blue.svg)](https://github.com/djpask/netflix-ratings-chrome-extension/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+
 **FlixRatings** è un'estensione per Google Chrome (Manifest V3) che aggiunge in tempo reale i voti di **IMDb**, **Rotten Tomatoes** e **Metacritic** a ciascun film e serie TV all'interno del feed di Netflix.
 
 ---

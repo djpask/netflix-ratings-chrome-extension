@@ -1,4 +1,4 @@
-// FlixRatings - Content Script (Modern Netflix Integration)
+// FlixRatings - Content Script (Modern Netflix Integration v0.5.0)
 
 (() => {
   'use strict';
@@ -8,7 +8,9 @@
     showBobRatings: true,
     showModalRatings: true,
     highlightMasterpieces: true,
-    badgePosition: 'top-right'
+    badgePosition: 'top-right',
+    showRt: true,
+    showMetacritic: true
   };
 
   chrome.storage.local.get([
@@ -16,7 +18,9 @@
     'showBobRatings',
     'showModalRatings',
     'highlightMasterpieces',
-    'badgePosition'
+    'badgePosition',
+    'showRt',
+    'showMetacritic'
   ], (items) => {
     config = { ...config, ...items };
     applyConfigUpdates();
@@ -41,10 +45,34 @@
       } else {
         badge.classList.remove('badge-left');
       }
+
+      const rtSep = badge.querySelector('.flix-rt-sep');
+      const rtScore = badge.querySelector('.rt-score');
+      if (rtSep && rtScore) {
+        const disp = (config.showRt !== false) ? '' : 'none';
+        rtSep.style.display = disp;
+        rtScore.style.display = disp;
+      }
+
+      const mcSep = badge.querySelector('.flix-mc-sep');
+      const mcScore = badge.querySelector('.mc-score');
+      if (mcSep && mcScore) {
+        const disp = (config.showMetacritic !== false) ? '' : 'none';
+        mcSep.style.display = disp;
+        mcScore.style.display = disp;
+      }
     });
 
     document.querySelectorAll('.flixratings-bob-row').forEach(row => {
       row.style.display = config.showBobRatings ? 'flex' : 'none';
+      const pillRt = row.querySelector('.pill-rt');
+      if (pillRt) {
+        pillRt.style.display = (config.showRt !== false) ? 'inline-flex' : 'none';
+      }
+      const pillMeta = row.querySelector('.pill-meta');
+      if (pillMeta) {
+        pillMeta.style.display = (config.showMetacritic !== false) ? 'inline-flex' : 'none';
+      }
     });
 
     document.querySelectorAll('.flixratings-modal-section').forEach(sec => {
@@ -145,6 +173,19 @@
     return 'flixratings-low';
   }
 
+  function formatMetacritic(val) {
+    if (!val) return null;
+    const match = String(val).match(/\d+/);
+    if (!match) return null;
+    const num = parseInt(match[0], 10);
+    if (isNaN(num)) return null;
+    let grade = 'mid';
+    if (num >= 61) grade = 'high';
+    else if (num >= 40) grade = 'mid';
+    else grade = 'low';
+    return { num, grade, raw: val };
+  }
+
   // Request rating from service worker
   async function fetchRating(title) {
     return new Promise(resolve => {
@@ -193,14 +234,34 @@
       `;
 
       if (rating.rottenTomatoes) {
+        const rtDisp = (config.showRt !== false) ? '' : 'style="display:none;"';
         inner += `
-          <span class="badge-critics-sep"></span>
-          <span class="rt-score">🍅 ${rating.rottenTomatoes}</span>
+          <span class="badge-critics-sep flix-rt-sep" ${rtDisp}></span>
+          <span class="rt-score" title="Rotten Tomatoes: ${rating.rottenTomatoes}" ${rtDisp}>🍅 ${rating.rottenTomatoes}</span>
         `;
       }
 
+      if (rating.metacritic) {
+        const mc = formatMetacritic(rating.metacritic);
+        if (mc) {
+          const mcDisp = (config.showMetacritic !== false) ? '' : 'style="display:none;"';
+          inner += `
+            <span class="badge-critics-sep flix-mc-sep" ${mcDisp}></span>
+            <span class="mc-score mc-${mc.grade}" title="Metacritic: ${mc.num}/100" ${mcDisp}>
+              <span class="mc-tag">MC</span>
+              <span class="mc-val">${mc.num}</span>
+            </span>
+          `;
+        }
+      }
+
       badge.innerHTML = inner;
-      badge.title = `${rating.title} (${rating.year || 'N/A'})\nValutazione IMDb: ${rating.imdbRating}/10${rating.rottenTomatoes ? `\nRotten Tomatoes: ${rating.rottenTomatoes}` : ''}\nClicca per aprire la scheda IMDb`;
+
+      let tooltip = `${rating.title} (${rating.year || 'N/A'})\nValutazione IMDb: ${rating.imdbRating}/10`;
+      if (rating.rottenTomatoes) tooltip += `\nRotten Tomatoes: ${rating.rottenTomatoes}`;
+      if (rating.metacritic) tooltip += `\nMetacritic: ${rating.metacritic}`;
+      tooltip += `\nClicca per aprire la scheda IMDb`;
+      badge.title = tooltip;
 
       const imdbUrl = rating.imdbId 
         ? `https://www.imdb.com/title/${rating.imdbId}/`
@@ -262,8 +323,9 @@
       `;
 
       if (rating.rottenTomatoes) {
+        const rtDisp = (config.showRt !== false) ? '' : 'style="display:none;"';
         pillsHtml += `
-          <span class="flixratings-pill pill-rt" title="Rotten Tomatoes Score">
+          <span class="flixratings-pill pill-rt" title="Rotten Tomatoes Score" ${rtDisp}>
             <span>🍅</span>
             <span>${rating.rottenTomatoes}</span>
           </span>
@@ -271,10 +333,13 @@
       }
 
       if (rating.metacritic) {
+        const mcDisp = (config.showMetacritic !== false) ? '' : 'style="display:none;"';
+        const mc = formatMetacritic(rating.metacritic);
+        const scoreDisplay = mc ? `${mc.num}/100` : rating.metacritic;
         pillsHtml += `
-          <span class="flixratings-pill pill-meta" title="Metacritic Score">
+          <span class="flixratings-pill pill-meta" title="Metacritic Score" ${mcDisp}>
             <span class="meta-tag">MC</span>
-            <span>${rating.metacritic}</span>
+            <span>${scoreDisplay}</span>
           </span>
         `;
       }
@@ -371,5 +436,5 @@
     start();
   }
 
-  console.log('[FlixRatings] Content script active on Netflix.');
+  console.log('[FlixRatings v0.5.0] Content script active on Netflix.');
 })();
