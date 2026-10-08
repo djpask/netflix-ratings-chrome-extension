@@ -1,0 +1,235 @@
+/* FlixRatings - Netflix Feed & Preview Badges Styling */
+
+/* ==========================================================================
+   1. Feed Thumbnail Badges (Always Visible on Feed Cards)
+   ========================================================================== */
+
+.flixratings-card-badge {
+  position: absolute !important;
+  top: 6px !important;
+  right: 6px !important;
+  z-index: 99999 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  padding: 3px 6px !important;
+  border-radius: 5px !important;
+  background: rgba(14, 14, 14, 0.92) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  border: 1px solid rgba(245, 197, 24, 0.45) !important;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.75) !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+  color: #ffffff !important;
+  pointer-events: auto !important;
+  cursor: pointer !important;
+  user-select: none !important;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.flixratings-card-badge.badge-left {
+  right: auto !important;
+  left: 6px !important;
+}
+
+.flixratings-card-badge:hover {
+  transform: scale(1.1) !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.9), 0 0 10px rgba(245, 197, 24, 0.5) !important;
+  border-color: #f5c518 !important;
+}
+
+/* IMDb icon tag */
+.flixratings-card-badge .imdb-icon {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: #f5c518 !important;
+  color: #000000 !important;
+  font-weight: 900 !important;
+  font-size: 8.5px !important;
+  padding: 1px 3px !important;
+  border-radius: 3px !important;
+  letter-spacing: -0.2px !important;
+  line-height: 1 !important;
+}
+
+/* Score number */
+.flixratings-card-badge .rating-num {
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.2px !important;
+  color: #ffffff !important;
+}
+
+/* Rating grade colors */
+.flixratings-card-badge.flixratings-masterpiece {
+  border-color: rgba(245, 197, 24, 0.9) !important;
+  box-shadow: 0 0 10px rgba(245, 197, 24, 0.45), 0 3px 10px rgba(0, 0, 0, 0.8) !important;
+}
+
+.flixratings-card-badge.flixratings-high {
+  border-color: rgba(46, 204, 113, 0.7) !important;
+}
+
+.flixratings-card-badge.flixratings-mid {
+  border-color: rgba(255, 255, 255, 0.25) !important;
+}
+
+.flixratings-card-badge.flixratings-low {
+  border-color: rgba(231, 76, 60, 0.5) !important;
+  opacity: 0.88 !important;
+}
+
+/* Optional Rotten Tomatoes score on card */
+.flixratings-card-badge .badge-critics-sep {
+  width: 1px !important;
+  height: 10px !important;
+  background: rgba(255, 255, 255, 0.25) !important;
+  margin: 0 1px !important;
+}
+
+.flixratings-card-badge .rt-score {
+  color: #ff4b4b !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+}
+
+/* Ensure boxart container allows positioning */
+.boxart-container, [class*="boxart-container"] {
+  position: relative !important;
+}
+
+/* ==========================================================================
+   2. Bob Card (Hover Preview Modal)
+   ========================================================================== */
+
+.flixratings-bob-row {
+  display: flex !important;
+  align-items: center !important;
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+  margin: 8px 0 !important;
+  padding: 6px 10px !important;
+  background: rgba(24, 24, 24, 0.92) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 8px !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  z-index: 100 !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6) !important;
+}
+
+.flixratings-pill {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  padding: 3px 8px !important;
+  border-radius: 5px !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  text-decoration: none !important;
+  color: #ffffff !important;
+  background: rgba(45, 45, 45, 0.8) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  transition: all 0.2s ease !important;
+}
+
+.flixratings-pill:hover {
+  background: rgba(60, 60, 60, 0.98) !important;
+  transform: translateY(-1px) !important;
+  color: #ffffff !important;
+}
+
+.flixratings-pill.pill-imdb {
+  border-color: rgba(245, 197, 24, 0.4) !important;
+}
+.flixratings-pill.pill-imdb:hover {
+  border-color: #f5c518 !important;
+  box-shadow: 0 0 8px rgba(245, 197, 24, 0.35) !important;
+}
+
+.flixratings-pill .imdb-tag {
+  background: #f5c518 !important;
+  color: #000000 !important;
+  font-weight: 900 !important;
+  font-size: 9px !important;
+  padding: 1px 4px !important;
+  border-radius: 3px !important;
+}
+
+.flixratings-pill.pill-rt {
+  border-color: rgba(255, 75, 75, 0.35) !important;
+}
+.flixratings-pill.pill-rt:hover {
+  border-color: #ff4b4b !important;
+  box-shadow: 0 0 8px rgba(255, 75, 75, 0.35) !important;
+}
+
+.flixratings-pill.pill-meta {
+  border-color: rgba(102, 204, 51, 0.35) !important;
+}
+.flixratings-pill.pill-meta:hover {
+  border-color: #66cc33 !important;
+}
+
+.flixratings-pill .meta-tag {
+  background: #66cc33 !important;
+  color: #000000 !important;
+  font-weight: 900 !important;
+  font-size: 9px !important;
+  padding: 1px 4px !important;
+  border-radius: 3px !important;
+}
+
+.flixratings-awards-text {
+  width: 100% !important;
+  font-size: 11px !important;
+  color: #e5b93b !important;
+  font-weight: 500 !important;
+  margin-top: 2px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+}
+
+/* ==========================================================================
+   3. Detail Modal (Full Preview Container)
+   ========================================================================== */
+
+.flixratings-modal-section {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 10px !important;
+  margin: 16px 0 !important;
+  padding: 12px 16px !important;
+  background: rgba(30, 30, 30, 0.75) !important;
+  backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 10px !important;
+}
+
+.flixratings-modal-header {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+}
+
+.flixratings-modal-title {
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.8px !important;
+  color: #a3a3a3 !important;
+}
+
+.flixratings-modal-pills {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 10px !important;
+}
