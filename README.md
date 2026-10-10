@@ -1,15 +1,18 @@
 # FlixRatings 🎬⭐
 
-[![Version](https://img.shields.io/badge/version-0.5.0-blue.svg)](https://github.com/djpask/netflix-ratings-chrome-extension/releases)
+[![Version](https://img.shields.io/badge/version-0.6.0-blue.svg)](https://github.com/djpask/netflix-ratings-chrome-extension/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 
 **FlixRatings** è un'estensione per Google Chrome (Manifest V3) che aggiunge in tempo reale i voti di **IMDb**, **Rotten Tomatoes** e **Metacritic** a ciascun film e serie TV all'interno del feed di Netflix.
 
+
 ---
 
 ## ✨ Funzionalità
 
+- 🔖 **Watchlist Personale ("Da Vedere")**: Salva film e serie con un clic sul pulsante  accanto al badge o nel riquadro anteprima.
+- 📝 **Esportazione in Google Keep**: Esporta con un clic tutta la lista direttamente in Google Keep, con caselle di controllo, rating completi e link minimale e diretto a Netflix.
 - 🌟 **Rating IMDb Diretto**: Badge compatto e moderno posizionato su ogni locandina della home di Netflix.
 - 🍅 **Rotten Tomatoes & Metacritic**: Punteggi della critica disponibili sia nelle anteprime che sulle locandine (quando abilitato OMDb).
 - ⚡ **Zero Setup Necessario**: Motore pubblico gratuito integrato per IMDb. Funziona immediatamente dopo l'installazione senza richiedere registrazioni.

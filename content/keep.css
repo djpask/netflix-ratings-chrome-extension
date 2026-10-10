@@ -1,0 +1,121 @@
+/* FlixRatings - Google Keep Injected Banner Styling */
+
+#flixratings-keep-banner {
+  position: fixed !important;
+  bottom: 24px !important;
+  right: 24px !important;
+  z-index: 2147483647 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 12px !important;
+  width: 380px !important;
+  max-width: calc(100vw - 32px) !important;
+  padding: 16px 18px !important;
+  background: rgba(30, 30, 30, 0.96) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border: 1px solid rgba(245, 197, 24, 0.6) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8), 0 0 15px rgba(245, 197, 24, 0.25) !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
+  color: #ffffff !important;
+  animation: flixratings-slidein 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+@keyframes flixratings-slidein {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.flixratings-banner-header {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 10px !important;
+}
+
+.flixratings-banner-title {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  font-size: 14px !important;
+  font-weight: 800 !important;
+  color: #f5c518 !important;
+}
+
+.flixratings-banner-close {
+  background: transparent !important;
+  border: none !important;
+  color: #999999 !important;
+  font-size: 16px !important;
+  cursor: pointer !important;
+  padding: 2px 6px !important;
+  border-radius: 4px !important;
+  line-height: 1 !important;
+  transition: color 0.15s ease, background 0.15s ease !important;
+}
+
+.flixratings-banner-close:hover {
+  color: #ffffff !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+.flixratings-banner-body {
+  font-size: 12.5px !important;
+  line-height: 1.45 !important;
+  color: #d1d5db !important;
+}
+
+.flixratings-banner-actions {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  margin-top: 4px !important;
+}
+
+.flixratings-btn-keep-primary {
+  flex: 1 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  background: linear-gradient(135deg, #f5c518 0%, #e5a50a 100%) !important;
+  color: #000000 !important;
+  font-size: 12.5px !important;
+  font-weight: 800 !important;
+  padding: 8px 12px !important;
+  border: none !important;
+  border-radius: 6px !important;
+  cursor: pointer !important;
+  transition: transform 0.15s ease, filter 0.15s ease !important;
+}
+
+.flixratings-btn-keep-primary:hover {
+  transform: translateY(-1px) !important;
+  filter: brightness(1.08) !important;
+}
+
+.flixratings-btn-keep-secondary {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: #ffffff !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  padding: 8px 12px !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  border-radius: 6px !important;
+  cursor: pointer !important;
+  transition: background 0.15s ease !important;
+}
+
+.flixratings-btn-keep-secondary:hover {
+  background: rgba(255, 255, 255, 0.18) !important;
+}

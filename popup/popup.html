@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FlixRatings - Netflix Ratings</title>
+  <title>FlixRatings - Netflix Ratings & Watchlist</title>
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
@@ -16,7 +16,7 @@
         </div>
         <div class="logo-titles">
           <h1 class="logo-main">FlixRatings</h1>
-          <p class="logo-sub">IMDb & Critics for Netflix</p>
+          <p class="logo-sub">IMDb, Critics & Watchlist per Netflix</p>
         </div>
       </div>
       <div class="status-pill" id="statusPill">
@@ -25,136 +25,178 @@
       </div>
     </header>
 
-    <!-- Main Switch -->
-    <div class="section-card">
-      <div class="toggle-row">
-        <div class="toggle-info">
-          <span class="toggle-label">Mostra rating su Netflix</span>
-          <span class="toggle-desc">Abilita o disabilita i badge in tutto il feed</span>
-        </div>
-        <label class="switch">
-          <input type="checkbox" id="toggleGlobal" checked>
-          <span class="slider"></span>
-        </label>
-      </div>
-    </div>
+    <!-- Navigation Tabs -->
+    <nav class="popup-nav-tabs">
+      <button type="button" class="nav-tab active" id="tabBtnWatchlist">
+        <span class="tab-icon">🔖</span>
+        <span>Da Vedere</span>
+        <span class="tab-badge" id="watchlistBadgeCount">0</span>
+      </button>
+      <button type="button" class="nav-tab" id="tabBtnSettings">
+        <span class="tab-icon">⚙️</span>
+        <span>Impostazioni</span>
+      </button>
+    </nav>
 
-    <!-- Display Options -->
-    <div class="section-card">
-      <h2 class="section-title">Visualizzazione</h2>
-      
-      <div class="option-row">
-        <div class="option-info">
-          <span class="option-label">Badge sulle locandine</span>
-          <span class="option-desc">Voto IMDb compatto in sovrimpressione</span>
-        </div>
-        <label class="switch switch-sm">
-          <input type="checkbox" id="toggleCardBadges" checked>
-          <span class="slider"></span>
-        </label>
+    <!-- TAB 1: WATCHLIST ("Da Vedere") -->
+    <main id="tabContentWatchlist" class="tab-content active">
+      <div class="watchlist-toolbar">
+        <span class="watchlist-count" id="watchlistCountText">0 titoli salvati</span>
+        <button type="button" id="btnClearWatchlist" class="btn-text-danger" title="Svuota lista">Svuota lista</button>
       </div>
 
-      <div class="option-row">
-        <div class="option-info">
-          <span class="option-label">Posizione badge locandina</span>
-        </div>
-        <select id="selectBadgePosition" class="select-dropdown">
-          <option value="top-right">In alto a destra</option>
-          <option value="top-left">In alto a sinistra</option>
-        </select>
+      <div id="watchlistContainer" class="watchlist-list">
+        <!-- Rendered dynamically by popup.js -->
       </div>
 
-      <div class="option-row">
-        <div class="option-info">
-          <span class="option-label">Riquadro anteprima (Bob Card)</span>
-          <span class="option-desc">Rating esteso passando sopra con il mouse</span>
+      <div class="watchlist-export-box">
+        <button type="button" id="btnExportKeep" class="btn-keep-export">
+          <span class="btn-keep-icon">💡</span>
+          <div class="btn-keep-labels">
+            <span class="btn-keep-text">Esporta su Google Keep</span>
+            <span class="btn-keep-sub" id="btnKeepCountSub">Crea nota con link e voti</span>
+          </div>
+        </button>
+        <button type="button" id="btnCopyWatchlist" class="btn-copy-export">
+          <span>📋 Copia elenco</span>
+        </button>
+      </div>
+      <div id="exportStatusMsg" class="export-status-msg"></div>
+    </main>
+
+    <!-- TAB 2: SETTINGS ("Impostazioni") -->
+    <main id="tabContentSettings" class="tab-content hidden">
+      <!-- Main Switch -->
+      <div class="section-card">
+        <div class="toggle-row">
+          <div class="toggle-info">
+            <span class="toggle-label">Mostra rating su Netflix</span>
+            <span class="toggle-desc">Abilita o disabilita i badge in tutto il feed</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="toggleGlobal" checked>
+            <span class="slider"></span>
+          </label>
         </div>
-        <label class="switch switch-sm">
-          <input type="checkbox" id="toggleBobRatings" checked>
-          <span class="slider"></span>
-        </label>
       </div>
 
-      <div class="option-row">
-        <div class="option-info">
-          <span class="option-label">Evidenzia capolavori (≥ 8.0)</span>
-          <span class="option-desc">Bordo oro e bagliore sui titoli più votati</span>
+      <!-- Display Options -->
+      <div class="section-card">
+        <h2 class="section-title">Visualizzazione</h2>
+        
+        <div class="option-row">
+          <div class="option-info">
+            <span class="option-label">Badge sulle locandine</span>
+            <span class="option-desc">Voto compatto e tasto segnalibro</span>
+          </div>
+          <label class="switch switch-sm">
+            <input type="checkbox" id="toggleCardBadges" checked>
+            <span class="slider"></span>
+          </label>
         </div>
-        <label class="switch switch-sm">
-          <input type="checkbox" id="toggleHighlight" checked>
-          <span class="slider"></span>
-        </label>
+
+        <div class="option-row">
+          <div class="option-info">
+            <span class="option-label">Posizione badge locandina</span>
+          </div>
+          <select id="selectBadgePosition" class="select-dropdown">
+            <option value="top-right">In alto a destra</option>
+            <option value="top-left">In alto a sinistra</option>
+          </select>
+        </div>
+
+        <div class="option-row">
+          <div class="option-info">
+            <span class="option-label">Riquadro anteprima (Bob Card)</span>
+            <span class="option-desc">Rating esteso passando sopra con il mouse</span>
+          </div>
+          <label class="switch switch-sm">
+            <input type="checkbox" id="toggleBobRatings" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="option-row">
+          <div class="option-info">
+            <span class="option-label">Evidenzia capolavori (≥ 8.0)</span>
+            <span class="option-desc">Bordo oro e bagliore sui titoli più votati</span>
+          </div>
+          <label class="switch switch-sm">
+            <input type="checkbox" id="toggleHighlight" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="option-row">
+          <div class="option-info">
+            <span class="option-label">Voto Rotten Tomatoes (🍅)</span>
+            <span class="option-desc">Percentuale critica aggregata</span>
+          </div>
+          <label class="switch switch-sm">
+            <input type="checkbox" id="toggleRt" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="option-row">
+          <div class="option-info">
+            <span class="option-label">Voto Metacritic (MC)</span>
+            <span class="option-desc">Punteggio Metascore da 0 a 100</span>
+          </div>
+          <label class="switch switch-sm">
+            <input type="checkbox" id="toggleMetacritic" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
       </div>
 
-      <div class="option-row">
-        <div class="option-info">
-          <span class="option-label">Voto Rotten Tomatoes (🍅)</span>
-          <span class="option-desc">Percentuale critica aggregata</span>
-        </div>
-        <label class="switch switch-sm">
-          <input type="checkbox" id="toggleRt" checked>
-          <span class="slider"></span>
-        </label>
-      </div>
-
-      <div class="option-row">
-        <div class="option-info">
-          <span class="option-label">Voto Metacritic (MC)</span>
-          <span class="option-desc">Punteggio Metascore da 0 a 100</span>
-        </div>
-        <label class="switch switch-sm">
-          <input type="checkbox" id="toggleMetacritic" checked>
-          <span class="slider"></span>
-        </label>
-      </div>
-    </div>
-
-    <!-- Rating Sources & API Key -->
-    <div class="section-card">
-      <h2 class="section-title">Fonti & API Key</h2>
-      <p class="source-hint">
-        Di default è attivo il <strong>motore pubblico gratuito IMDb</strong> (nessuna configurazione richiesta).
-      </p>
-
-      <div class="toggle-row" style="margin-top: 10px; margin-bottom: 8px;">
-        <div class="toggle-info">
-          <span class="toggle-label">Usa OMDb API</span>
-          <span class="toggle-desc">Aggiunge anche Rotten Tomatoes e Metacritic</span>
-        </div>
-        <label class="switch switch-sm">
-          <input type="checkbox" id="toggleOmdb">
-          <span class="slider"></span>
-        </label>
-      </div>
-
-      <div id="omdbConfigBox" class="omdb-box hidden">
-        <label class="input-label" for="omdbApiKey">Chiave API OMDb (Gratuita):</label>
-        <div class="input-group">
-          <input type="password" id="omdbApiKey" placeholder="Es. 1a2b3c4d" autocomplete="off" spellcheck="false">
-          <button id="btnToggleKeyVisibility" class="btn-icon" title="Mostra/Nascondi chiave">👁️</button>
-        </div>
-        <div class="btn-group">
-          <button id="btnSaveKey" class="btn-primary">Salva Chiave</button>
-          <button id="btnTestKey" class="btn-secondary">Test Chiave</button>
-        </div>
-        <div id="omdbStatusMsg" class="status-msg"></div>
-        <p class="api-helper-text">
-          Puoi richiedere la tua chiave gratuita (1.000 richieste/giorno) su 
-          <a href="https://www.omdbapi.com/apikey.aspx" target="_blank" rel="noopener noreferrer">omdbapi.com</a>.
+      <!-- Rating Sources & API Key -->
+      <div class="section-card">
+        <h2 class="section-title">Fonti & API Key</h2>
+        <p class="source-hint">
+          Di default è attivo il <strong>motore pubblico gratuito IMDb</strong> (nessuna configurazione richiesta).
         </p>
-      </div>
-    </div>
 
-    <!-- Cache Management -->
-    <div class="section-card">
-      <div class="cache-row">
-        <div>
-          <span class="toggle-label">Cache Locale</span>
-          <span class="cache-count" id="cacheCountText">0 titoli memorizzati</span>
+        <div class="toggle-row" style="margin-top: 10px; margin-bottom: 8px;">
+          <div class="toggle-info">
+            <span class="toggle-label">Usa OMDb API Personalizzata</span>
+            <span class="toggle-desc">Per arricchire Rotten Tomatoes e Metacritic</span>
+          </div>
+          <label class="switch switch-sm">
+            <input type="checkbox" id="toggleOmdb">
+            <span class="slider"></span>
+          </label>
         </div>
-        <button id="btnClearCache" class="btn-danger-outline">Svuota cache</button>
+
+        <div id="omdbConfigBox" class="omdb-box hidden">
+          <label class="input-label" for="omdbApiKey">Chiave API OMDb (Gratuita):</label>
+          <div class="input-group">
+            <input type="password" id="omdbApiKey" placeholder="Es. 1a2b3c4d" autocomplete="off" spellcheck="false">
+            <button id="btnToggleKeyVisibility" class="btn-icon" title="Mostra/Nascondi chiave">👁️</button>
+          </div>
+          <div class="btn-group">
+            <button id="btnSaveKey" class="btn-primary">Salva Chiave</button>
+            <button id="btnTestKey" class="btn-secondary">Test Chiave</button>
+          </div>
+          <div id="omdbStatusMsg" class="status-msg"></div>
+          <p class="api-helper-text">
+            Puoi richiedere la tua chiave gratuita (1.000 richieste/giorno) su 
+            <a href="https://www.omdbapi.com/apikey.aspx" target="_blank" rel="noopener noreferrer">omdbapi.com</a>.
+          </p>
+        </div>
       </div>
-    </div>
+
+      <!-- Cache Management -->
+      <div class="section-card">
+        <div class="cache-row">
+          <div>
+            <span class="toggle-label">Cache Locale Valutazioni</span>
+            <span class="cache-count" id="cacheCountText">0 titoli memorizzati</span>
+          </div>
+          <button id="btnClearCache" class="btn-danger-outline">Svuota cache</button>
+        </div>
+      </div>
+    </main>
 
     <!-- Footer Actions -->
     <footer class="popup-footer">
@@ -164,7 +206,9 @@
       <div class="footer-links">
         <a href="https://www.netflix.com" target="_blank" rel="noopener noreferrer">Apri Netflix</a>
         <span>•</span>
-        <span class="version-tag">v0.5.0</span>
+        <a href="https://keep.google.com" target="_blank" rel="noopener noreferrer">Google Keep</a>
+        <span>•</span>
+        <span class="version-tag">v0.6.0</span>
       </div>
     </footer>
   </div>

@@ -1,6 +1,6 @@
 // FlixRatings - Background Service Worker (Manifest V3)
 
-const EXTENSION_VERSION = '0.5.0';
+const EXTENSION_VERSION = '0.6.0';
 
 // In-flight request deduplication map
 const inFlightRequests = new Map();
@@ -20,12 +20,11 @@ const queue = [];
     const all = await chrome.storage.local.get(null);
     const toRemove = [];
 
-    // Purge bad legacy queries or upgrade cache for v0.5.0 to fetch fresh Metacritic scores
+    // Purge bad legacy queries or upgrade cache if needed
     for (const key of Object.keys(all)) {
       if (key.startsWith('rating_')) {
         const titlePart = key.replace('rating_', '');
-        if (schemaVersion !== EXTENSION_VERSION ||
-            titlePart.includes('riproduci') || 
+        if (titlePart.includes('riproduci') || 
             titlePart.includes('play') || 
             titlePart.includes('altre_info') || 
             titlePart.length < 2) {
@@ -36,7 +35,7 @@ const queue = [];
 
     if (toRemove.length > 0) {
       await chrome.storage.local.remove(toRemove);
-      console.log(`[FlixRatings v${EXTENSION_VERSION}] Cleaned ${toRemove.length} cache keys for fresh rating retrieval.`);
+      console.log(`[FlixRatings v${EXTENSION_VERSION}] Cleaned ${toRemove.length} invalid cache keys.`);
     }
 
     if (schemaVersion !== EXTENSION_VERSION) {
@@ -322,8 +321,6 @@ async function getRatingForTitle(rawTitle) {
       ratingData = { found: false, title: cleaned };
     }
 
-    console.log(`[FlixRatings] "${cleaned}" => ${ratingData.imdbId || 'N/A'} (IMDb: ${ratingData.imdbRating || 'N/A'}, RT: ${ratingData.rottenTomatoes || 'N/A'}, MC: ${ratingData.metacritic || 'N/A'})`);
-
     // Cache result
     memoryCache.set(cacheKey, ratingData);
     await chrome.storage.local.set({
@@ -380,6 +377,46 @@ async function testOmdbKey(apiKey) {
   }
 }
 
+// ============================================================================
+// Watchlist Management & Google Keep Formatter
+// ============================================================================
+
+async function getWatchlist() {
+  try {
+    const res = await chrome.storage.sync.get(['watchlist']);
+    if (Array.isArray(res.watchlist)) return res.watchlist;
+  } catch (e) {}
+  const local = await chrome.storage.local.get(['watchlist']);
+  return Array.isArray(local.watchlist) ? local.watchlist : [];
+}
+
+async function saveWatchlist(list) {
+  try {
+    await chrome.storage.sync.set({ watchlist: list });
+  } catch (e) {
+    console.warn('[FlixRatings] sync.set failed, falling back to local.set', e);
+  }
+  await chrome.storage.local.set({ watchlist: list });
+}
+
+function formatWatchlistForKeep(list) {
+  let out = "🎬 Netflix - Film e Serie Da Vedere\n\n";
+  for (const item of list) {
+    let line = `☐ ${item.title}`;
+    const ratings = [];
+    if (item.imdbRating) ratings.push(`IMDb: ${item.imdbRating}`);
+    if (item.rottenTomatoes) ratings.push(`🍅 ${item.rottenTomatoes}`);
+    if (item.metacritic) ratings.push(`MC: ${String(item.metacritic).replace('/100', '')}`);
+    if (ratings.length > 0) {
+      line += ` • ${ratings.join(' | ')}`;
+    }
+    const cleanUrl = item.netflixUrl || (item.netflixId ? `https://www.netflix.com/title/${item.netflixId}` : 'https://www.netflix.com');
+    line += ` — ${cleanUrl}`;
+    out += line + "\n";
+  }
+  return out;
+}
+
 // Runtime message listener
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (!message || !message.type) return;
@@ -416,6 +453,104 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     (async () => {
       const stats = await getCacheStats();
       sendResponse(stats);
+    })();
+    return true;
+  }
+
+  if (message.type === 'GET_WATCHLIST') {
+    (async () => {
+      try {
+        const list = await getWatchlist();
+        sendResponse({ success: true, watchlist: list, count: list.length });
+      } catch (err) {
+        sendResponse({ success: false, error: err.message });
+      }
+    })();
+    return true;
+  }
+
+  if (message.type === 'TOGGLE_WATCHLIST') {
+    (async () => {
+      try {
+        const list = await getWatchlist();
+        const item = message.item;
+        if (!item || !item.title) {
+          sendResponse({ success: false, error: 'Titolo non valido' });
+          return;
+        }
+
+        const existingIdx = list.findIndex(x => 
+          (item.netflixId && x.netflixId === item.netflixId) || 
+          (x.title && x.title.toLowerCase() === item.title.toLowerCase())
+        );
+
+        let inWatchlist = false;
+        if (existingIdx >= 0) {
+          list.splice(existingIdx, 1);
+          inWatchlist = false;
+        } else {
+          list.unshift({
+            netflixId: item.netflixId || null,
+            title: item.title,
+            year: item.year || null,
+            imdbRating: item.imdbRating || null,
+            rottenTomatoes: item.rottenTomatoes || null,
+            metacritic: item.metacritic || null,
+            imdbId: item.imdbId || null,
+            netflixUrl: item.netflixUrl || (item.netflixId ? `https://www.netflix.com/title/${item.netflixId}` : 'https://www.netflix.com'),
+            addedAt: Date.now()
+          });
+          inWatchlist = true;
+        }
+
+        await saveWatchlist(list);
+        sendResponse({ success: true, inWatchlist, count: list.length, item });
+      } catch (err) {
+        sendResponse({ success: false, error: err.message });
+      }
+    })();
+    return true;
+  }
+
+  if (message.type === 'REMOVE_FROM_WATCHLIST') {
+    (async () => {
+      try {
+        let list = await getWatchlist();
+        list = list.filter(x => {
+          if (message.netflixId && x.netflixId === message.netflixId) return false;
+          if (message.title && x.title.toLowerCase() === message.title.toLowerCase()) return false;
+          return true;
+        });
+        await saveWatchlist(list);
+        sendResponse({ success: true, count: list.length });
+      } catch (err) {
+        sendResponse({ success: false, error: err.message });
+      }
+    })();
+    return true;
+  }
+
+  if (message.type === 'CLEAR_WATCHLIST') {
+    (async () => {
+      try {
+        await saveWatchlist([]);
+        sendResponse({ success: true, count: 0 });
+      } catch (err) {
+        sendResponse({ success: false, error: err.message });
+      }
+    })();
+    return true;
+  }
+
+  if (message.type === 'GET_WATCHLIST_KEEP_TEXT') {
+    (async () => {
+      try {
+        const list = await getWatchlist();
+        const text = formatWatchlistForKeep(list);
+        sendResponse({ success: true, text, count: list.length });
+      } catch (err) {
+        sendResponse({ success: false, error: err.message });
+      }
     })();
     return true;
   }

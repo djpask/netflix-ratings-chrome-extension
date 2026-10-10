@@ -1,7 +1,23 @@
-// FlixRatings - Popup Script
+// FlixRatings - Popup Script v0.6.0 (Watchlist & Keep Export)
 
 document.addEventListener('DOMContentLoaded', async () => {
-  // DOM Elements
+  // Navigation Tabs
+  const tabBtnWatchlist = document.getElementById('tabBtnWatchlist');
+  const tabBtnSettings = document.getElementById('tabBtnSettings');
+  const tabContentWatchlist = document.getElementById('tabContentWatchlist');
+  const tabContentSettings = document.getElementById('tabContentSettings');
+  const watchlistBadgeCount = document.getElementById('watchlistBadgeCount');
+
+  // Watchlist Elements
+  const watchlistCountText = document.getElementById('watchlistCountText');
+  const watchlistContainer = document.getElementById('watchlistContainer');
+  const btnClearWatchlist = document.getElementById('btnClearWatchlist');
+  const btnExportKeep = document.getElementById('btnExportKeep');
+  const btnCopyWatchlist = document.getElementById('btnCopyWatchlist');
+  const btnKeepCountSub = document.getElementById('btnKeepCountSub');
+  const exportStatusMsg = document.getElementById('exportStatusMsg');
+
+  // Settings DOM Elements
   const statusPill = document.getElementById('statusPill');
   const statusText = document.getElementById('statusText');
   const toggleGlobal = document.getElementById('toggleGlobal');
@@ -12,7 +28,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const toggleRt = document.getElementById('toggleRt');
   const toggleMetacritic = document.getElementById('toggleMetacritic');
 
-  // OMDb elements
+  // OMDb Elements
   const toggleOmdb = document.getElementById('toggleOmdb');
   const omdbConfigBox = document.getElementById('omdbConfigBox');
   const omdbApiKey = document.getElementById('omdbApiKey');
@@ -21,14 +37,240 @@ document.addEventListener('DOMContentLoaded', async () => {
   const btnTestKey = document.getElementById('btnTestKey');
   const omdbStatusMsg = document.getElementById('omdbStatusMsg');
 
-  // Cache elements
+  // Cache Elements
   const cacheCountText = document.getElementById('cacheCountText');
   const btnClearCache = document.getElementById('btnClearCache');
 
-  // Action elements
+  // Actions
   const btnReloadNetflix = document.getElementById('btnReloadNetflix');
 
-  // 1. Load initial settings
+  // ==========================================================================
+  // Tab Switching Logic
+  // ==========================================================================
+
+  function switchTab(target) {
+    if (target === 'watchlist') {
+      tabBtnWatchlist.classList.add('active');
+      tabBtnSettings.classList.remove('active');
+      tabContentWatchlist.classList.remove('hidden');
+      tabContentWatchlist.classList.add('active');
+      tabContentSettings.classList.add('hidden');
+      tabContentSettings.classList.remove('active');
+      loadAndRenderWatchlist();
+    } else {
+      tabBtnSettings.classList.add('active');
+      tabBtnWatchlist.classList.remove('active');
+      tabContentSettings.classList.remove('hidden');
+      tabContentSettings.classList.add('active');
+      tabContentWatchlist.classList.add('hidden');
+      tabContentWatchlist.classList.remove('active');
+    }
+  }
+
+  tabBtnWatchlist.addEventListener('click', () => switchTab('watchlist'));
+  tabBtnSettings.addEventListener('click', () => switchTab('settings'));
+
+  // ==========================================================================
+  // Watchlist Rendering & Actions
+  // ==========================================================================
+
+  let currentWatchlist = [];
+
+  async function loadAndRenderWatchlist() {
+    try {
+      const response = await new Promise((resolve) => {
+        chrome.runtime.sendMessage({ type: 'GET_WATCHLIST' }, resolve);
+      });
+
+      if (response && response.success && Array.isArray(response.watchlist)) {
+        currentWatchlist = response.watchlist;
+      } else {
+        currentWatchlist = [];
+      }
+      renderWatchlistUI();
+    } catch (e) {
+      console.warn('Errore nel caricamento della Watchlist:', e);
+    }
+  }
+
+  function renderWatchlistUI() {
+    const count = currentWatchlist.length;
+    watchlistBadgeCount.textContent = count;
+    watchlistCountText.textContent = `${count} ${count === 1 ? 'titolo salvato' : 'titoli salvati'}`;
+    btnKeepCountSub.textContent = count > 0 ? `(${count} elementi pronti)` : 'Nessun elemento';
+
+    if (count === 0) {
+      watchlistContainer.innerHTML = `
+        <div class="watchlist-empty">
+          <div class="empty-icon">🎬</div>
+          <div class="empty-title">La tua lista Da Vedere è vuota</div>
+          <p class="empty-desc">
+            Passa su Netflix e clicca sul tasto <strong>"+"</strong> posizionato accanto ai badge dei voti sulle locandine per aggiungere film e serie TV.
+          </p>
+        </div>
+      `;
+      btnExportKeep.disabled = true;
+      btnCopyWatchlist.disabled = true;
+      btnClearWatchlist.style.display = 'none';
+      return;
+    }
+
+    btnExportKeep.disabled = false;
+    btnCopyWatchlist.disabled = false;
+    btnClearWatchlist.style.display = 'inline-block';
+
+    let html = '';
+    currentWatchlist.forEach((item) => {
+      const netflixUrl = item.netflixUrl || (item.netflixId ? `https://www.netflix.com/title/${item.netflixId}` : 'https://www.netflix.com');
+      const imdbUrl = item.imdbId ? `https://www.imdb.com/title/${item.imdbId}/` : null;
+
+      html += `
+        <div class="watchlist-item">
+          <div class="item-main">
+            <div class="item-title-row">
+              <span class="item-title" title="${item.title}">${item.title}</span>
+              ${item.year ? `<span class="item-year">(${item.year})</span>` : ''}
+            </div>
+            <div class="item-badges">
+              ${item.imdbRating ? `
+                <a href="${imdbUrl || '#'}" target="_blank" rel="noopener noreferrer" class="mini-pill pill-imdb" title="IMDb Rating">
+                  <span class="pill-tag">IMDb</span>
+                  <span>${item.imdbRating}</span>
+                </a>
+              ` : ''}
+              ${item.rottenTomatoes ? `
+                <span class="mini-pill pill-rt" title="Rotten Tomatoes">
+                  <span>🍅</span>
+                  <span>${item.rottenTomatoes}</span>
+                </span>
+              ` : ''}
+              ${item.metacritic ? `
+                <span class="mini-pill pill-mc" title="Metacritic">
+                  <span class="pill-tag mc">MC</span>
+                  <span>${String(item.metacritic).replace('/100', '')}</span>
+                </span>
+              ` : ''}
+            </div>
+          </div>
+          <div class="item-actions">
+            <a href="${netflixUrl}" target="_blank" rel="noopener noreferrer" class="btn-netflix-link" title="Apri su Netflix">
+              <span>N</span>
+            </a>
+            <button type="button" class="btn-remove-item" data-id="${item.netflixId || ''}" data-title="${item.title}" title="Rimuovi da Da Vedere">
+              ✕
+            </button>
+          </div>
+        </div>
+      `;
+    });
+
+    watchlistContainer.innerHTML = html;
+
+    // Remove buttons event delegation
+    watchlistContainer.querySelectorAll('.btn-remove-item').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        const netflixId = btn.dataset.id;
+        const title = btn.dataset.title;
+        btn.disabled = true;
+
+        await new Promise((resolve) => {
+          chrome.runtime.sendMessage({
+            type: 'REMOVE_FROM_WATCHLIST',
+            netflixId: netflixId || null,
+            title: title
+          }, resolve);
+        });
+
+        loadAndRenderWatchlist();
+      });
+    });
+  }
+
+  // Clear all watchlist items
+  btnClearWatchlist.addEventListener('click', async () => {
+    if (currentWatchlist.length === 0) return;
+    if (!confirm('Sei sicuro di voler svuotare tutta la lista dei titoli Da Vedere?')) {
+      return;
+    }
+
+    await new Promise((resolve) => {
+      chrome.runtime.sendMessage({ type: 'CLEAR_WATCHLIST' }, resolve);
+    });
+    loadAndRenderWatchlist();
+    showExportStatus('Lista svuotata con successo.', 'normal');
+  });
+
+  // Copy Watchlist to clipboard
+  btnCopyWatchlist.addEventListener('click', async () => {
+    if (currentWatchlist.length === 0) return;
+
+    try {
+      const response = await new Promise((resolve) => {
+        chrome.runtime.sendMessage({ type: 'GET_WATCHLIST_KEEP_TEXT' }, resolve);
+      });
+
+      if (response && response.success && response.text) {
+        await navigator.clipboard.writeText(response.text);
+        showExportStatus('✓ Elenco copiato negli appunti! Pronto da incollare.', 'success');
+      }
+    } catch (e) {
+      showExportStatus('Errore nella copia degli appunti: ' + e.message, 'error');
+    }
+  });
+
+  // Export to Google Keep
+  btnExportKeep.addEventListener('click', async () => {
+    if (currentWatchlist.length === 0) return;
+
+    btnExportKeep.disabled = true;
+    showExportStatus('Preparazione esportazione su Google Keep...', 'normal');
+
+    try {
+      const response = await new Promise((resolve) => {
+        chrome.runtime.sendMessage({ type: 'GET_WATCHLIST_KEEP_TEXT' }, resolve);
+      });
+
+      if (!response || !response.success || !response.text) {
+        throw new Error('Impossibile formattare l\'elenco');
+      }
+
+      // 1. Copy to clipboard immediately
+      await navigator.clipboard.writeText(response.text);
+
+      // 2. Set pending export flag in storage for Google Keep content script
+      await chrome.storage.local.set({
+        pendingKeepExport: {
+          title: '🎬 Netflix - Film e Serie Da Vedere',
+          text: response.text,
+          count: currentWatchlist.length,
+          timestamp: Date.now()
+        }
+      });
+
+      // 3. Open or focus Google Keep in a new tab
+      await chrome.tabs.create({ url: 'https://keep.google.com/' });
+
+      showExportStatus('✓ Aperto Google Keep! La nota è pronta per essere creata.', 'success');
+    } catch (e) {
+      showExportStatus('Errore durante l\'esportazione: ' + e.message, 'error');
+    } finally {
+      setTimeout(() => { btnExportKeep.disabled = false; }, 1200);
+    }
+  });
+
+  function showExportStatus(msg, type) {
+    exportStatusMsg.textContent = msg;
+    exportStatusMsg.className = `export-status-msg ${type}`;
+    setTimeout(() => {
+      exportStatusMsg.textContent = '';
+      exportStatusMsg.className = 'export-status-msg';
+    }, 4000);
+  }
+
+  // ==========================================================================
+  // Settings Logic
+  // ==========================================================================
+
   const settings = await chrome.storage.local.get({
     globalEnabled: true,
     showCardBadges: true,
@@ -59,11 +301,18 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   updateStatusUI(settings.globalEnabled);
-
-  // 2. Fetch cache stats
   updateCacheStats();
 
-  // 3. Event listeners for switches
+  // Watch storage changes
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === 'local' || area === 'sync') {
+      if (changes.watchlist) {
+        loadAndRenderWatchlist();
+      }
+    }
+  });
+
+  // Settings Event listeners
   toggleGlobal.addEventListener('change', async () => {
     const enabled = toggleGlobal.checked;
     await chrome.storage.local.set({
@@ -112,7 +361,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await chrome.storage.local.set({ enableOmdb: isChecked });
   });
 
-  // Toggle API key visibility (password vs text)
+  // Toggle API key visibility
   btnToggleKeyVisibility.addEventListener('click', () => {
     if (omdbApiKey.type === 'password') {
       omdbApiKey.type = 'text';
@@ -190,7 +439,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
       const tabs = await chrome.tabs.query({ url: '*://*.netflix.com/*' });
       if (tabs.length === 0) {
-        // If no tab found, open Netflix in a new tab
         await chrome.tabs.create({ url: 'https://www.netflix.com' });
       } else {
         for (const tab of tabs) {
@@ -241,4 +489,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       console.warn('Impossibile ottenere statistiche cache:', err);
     }
   }
+
+  // Initial load
+  loadAndRenderWatchlist();
 });

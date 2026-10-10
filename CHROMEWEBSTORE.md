@@ -84,4 +84,5 @@ Italian
 
 | Version | Date | Changes | Status |
 |---------|------|---------|--------|
+| 0.6.0 | 2026-10-10 | Nuova gestione Watchlist Da Vedere ed esportazione note in Google Keep con link minimale e voti. | Draft |
 | 0.5.0 | 2026-10-08 | Rilascio iniziale con supporto IMDb, Rotten Tomatoes, caching locale e bob-card preview. | Draft |

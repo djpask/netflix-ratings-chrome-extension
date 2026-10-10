@@ -1,4 +1,4 @@
-// FlixRatings - Content Script (Modern Netflix Integration v0.5.0)
+// FlixRatings - Content Script (Netflix Integration v0.6.0 with Watchlist)
 
 (() => {
   'use strict';
@@ -13,6 +13,10 @@
     showMetacritic: true
   };
 
+  // Set of titles / IDs currently in the user's Watchlist
+  let currentWatchlist = new Set();
+  let watchlistItems = [];
+
   chrome.storage.local.get([
     'showCardBadges',
     'showBobRatings',
@@ -26,8 +30,14 @@
     applyConfigUpdates();
   });
 
+  // Load initial watchlist
+  syncWatchlist();
+
   chrome.storage.onChanged.addListener((changes, area) => {
-    if (area === 'local') {
+    if (area === 'local' || area === 'sync') {
+      if (changes.watchlist) {
+        syncWatchlist();
+      }
       for (const [key, change] of Object.entries(changes)) {
         if (key in config) {
           config[key] = change.newValue;
@@ -37,25 +47,69 @@
     }
   });
 
-  function applyConfigUpdates() {
-    document.querySelectorAll('.flixratings-card-badge').forEach(badge => {
-      badge.style.display = config.showCardBadges ? 'inline-flex' : 'none';
-      if (config.badgePosition === 'top-left') {
-        badge.classList.add('badge-left');
+  async function syncWatchlist() {
+    try {
+      chrome.runtime.sendMessage({ type: 'GET_WATCHLIST' }, (res) => {
+        if (res && res.success && Array.isArray(res.watchlist)) {
+          watchlistItems = res.watchlist;
+          currentWatchlist = new Set(
+            res.watchlist.map(x => x.netflixId || x.title.toLowerCase())
+          );
+          updateWatchlistButtons();
+        }
+      });
+    } catch (e) {}
+  }
+
+  function updateWatchlistButtons() {
+    document.querySelectorAll('.flixratings-bookmark-btn').forEach(btn => {
+      const matchKey = btn.dataset.matchKey;
+      const titleKey = btn.dataset.titleKey;
+      const isSaved = currentWatchlist.has(matchKey) || currentWatchlist.has(titleKey);
+      if (isSaved) {
+        btn.classList.add('active');
+        btn.title = 'Rimuovi da Da Vedere';
+        btn.innerHTML = '<span class="bookmark-icon">✓</span>';
       } else {
-        badge.classList.remove('badge-left');
+        btn.classList.remove('active');
+        btn.title = 'Aggiungi a Da Vedere';
+        btn.innerHTML = '<span class="bookmark-icon">+</span>';
+      }
+    });
+
+    document.querySelectorAll('.pill-watchlist').forEach(pill => {
+      const matchKey = pill.dataset.matchKey;
+      const titleKey = pill.dataset.titleKey;
+      const isSaved = currentWatchlist.has(matchKey) || currentWatchlist.has(titleKey);
+      if (isSaved) {
+        pill.classList.add('active');
+        pill.innerHTML = '<span>✓ Nella lista Da Vedere</span>';
+      } else {
+        pill.classList.remove('active');
+        pill.innerHTML = '<span>+ Salva in Da Vedere</span>';
+      }
+    });
+  }
+
+  function applyConfigUpdates() {
+    document.querySelectorAll('.flixratings-badge-group').forEach(group => {
+      group.style.display = config.showCardBadges ? 'inline-flex' : 'none';
+      if (config.badgePosition === 'top-left') {
+        group.classList.add('badge-left');
+      } else {
+        group.classList.remove('badge-left');
       }
 
-      const rtSep = badge.querySelector('.flix-rt-sep');
-      const rtScore = badge.querySelector('.rt-score');
+      const rtSep = group.querySelector('.flix-rt-sep');
+      const rtScore = group.querySelector('.rt-score');
       if (rtSep && rtScore) {
         const disp = (config.showRt !== false) ? '' : 'none';
         rtSep.style.display = disp;
         rtScore.style.display = disp;
       }
 
-      const mcSep = badge.querySelector('.flix-mc-sep');
-      const mcScore = badge.querySelector('.mc-score');
+      const mcSep = group.querySelector('.flix-mc-sep');
+      const mcScore = group.querySelector('.mc-score');
       if (mcSep && mcScore) {
         const disp = (config.showMetacritic !== false) ? '' : 'none';
         mcSep.style.display = disp;
@@ -78,6 +132,23 @@
     document.querySelectorAll('.flixratings-modal-section').forEach(sec => {
       sec.style.display = config.showModalRatings ? 'flex' : 'none';
     });
+  }
+
+  // Toast feedback
+  let toastTimeout = null;
+  function showToast(message) {
+    let toast = document.getElementById('flixratings-toast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'flixratings-toast';
+      document.body.appendChild(toast);
+    }
+    toast.textContent = message;
+    toast.classList.add('visible');
+    clearTimeout(toastTimeout);
+    toastTimeout = setTimeout(() => {
+      toast.classList.remove('visible');
+    }, 2200);
   }
 
   // Blacklist of UI button labels and non-movie strings
@@ -111,10 +182,10 @@
     // Strip Netflix phrases
     title = title.replace(/\s*[-–—|]\s*(?:Netflix|Guarda ora|Guarda subito|Watch now|Sito ufficiale).*$/i, '');
     
-    // Strip season / part labels: "Stranger Things: Season 4", "La Casa di Carta: Parte 3"
+    // Strip season / part labels
     title = title.replace(/\s*[:\-\(]\s*(?:Stagione|Parte|Part|Season|Vol\.?|Volume|Capitolo|Chapter)\s*\d+.*$/i, '');
     
-    // Strip year in parenthesis: "Titolo (2022)"
+    // Strip year in parenthesis
     title = title.replace(/\s*\(\d{4}\)$/, '');
 
     return title.trim();
@@ -164,6 +235,13 @@
     return '';
   }
 
+  function extractNetflixId(card) {
+    if (!card) return null;
+    const href = card.getAttribute('href') || card.querySelector('a')?.getAttribute('href') || '';
+    const match = href.match(/(?:watch\/|title\/|[?&]jbv=)(\d+)/);
+    return match ? match[1] : null;
+  }
+
   function getRatingClass(score) {
     const num = parseFloat(score);
     if (isNaN(num)) return 'flixratings-mid';
@@ -201,7 +279,7 @@
 
   // Process a card in the feed
   async function processCard(card) {
-    if (card.querySelector('.flixratings-card-badge')) return;
+    if (card.querySelector('.flixratings-badge-group, .flixratings-card-badge')) return;
 
     const title = extractTitle(card);
     if (!title) return;
@@ -214,19 +292,26 @@
 
     if (!rating || !rating.found || !rating.imdbRating) return;
     if (!card.isConnected) return;
-    if (card.querySelector('.flixratings-card-badge')) return;
+    if (card.querySelector('.flixratings-badge-group, .flixratings-card-badge')) return;
 
     requestAnimationFrame(() => {
-      if (card.querySelector('.flixratings-card-badge')) return;
+      if (card.querySelector('.flixratings-badge-group, .flixratings-card-badge')) return;
 
+      const netflixId = extractNetflixId(card);
+      const matchKey = netflixId || rating.title.toLowerCase();
+      const titleKey = rating.title.toLowerCase();
+      const isSaved = currentWatchlist.has(matchKey) || currentWatchlist.has(titleKey);
+
+      // Wrapper group for rating badge and watchlist bookmark button
+      const group = document.createElement('div');
+      group.className = `flixratings-badge-group ${config.badgePosition === 'top-left' ? 'badge-left' : ''}`;
+      if (!config.showCardBadges) {
+        group.style.display = 'none';
+      }
+
+      // Rating badge
       const badge = document.createElement('div');
       badge.className = `flixratings-card-badge ${getRatingClass(rating.imdbRating)}`;
-      if (config.badgePosition === 'top-left') {
-        badge.classList.add('badge-left');
-      }
-      if (!config.showCardBadges) {
-        badge.style.display = 'none';
-      }
 
       let inner = `
         <span class="imdb-icon">IMDb</span>
@@ -275,11 +360,56 @@
         window.open(imdbUrl, '_blank', 'noopener,noreferrer');
       });
 
+      // Bookmark / Watchlist button
+      const bookmarkBtn = document.createElement('button');
+      bookmarkBtn.className = `flixratings-bookmark-btn ${isSaved ? 'active' : ''}`;
+      bookmarkBtn.dataset.matchKey = matchKey;
+      bookmarkBtn.dataset.titleKey = titleKey;
+      bookmarkBtn.setAttribute('type', 'button');
+      bookmarkBtn.setAttribute('aria-label', isSaved ? 'Rimuovi da Da Vedere' : 'Aggiungi a Da Vedere');
+      bookmarkBtn.title = isSaved ? 'Rimuovi da Da Vedere' : 'Aggiungi a Da Vedere';
+      bookmarkBtn.innerHTML = `<span class="bookmark-icon">${isSaved ? '✓' : '+'}</span>`;
+
+      bookmarkBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        e.stopImmediatePropagation();
+
+        const item = {
+          netflixId: netflixId || null,
+          title: rating.title,
+          year: rating.year || null,
+          imdbRating: rating.imdbRating || null,
+          rottenTomatoes: rating.rottenTomatoes || null,
+          metacritic: rating.metacritic || null,
+          imdbId: rating.imdbId || null,
+          netflixUrl: netflixId ? `https://www.netflix.com/title/${netflixId}` : window.location.href
+        };
+
+        chrome.runtime.sendMessage({ type: 'TOGGLE_WATCHLIST', item }, (res) => {
+          if (res && res.success) {
+            if (res.inWatchlist) {
+              currentWatchlist.add(matchKey);
+              currentWatchlist.add(titleKey);
+              showToast(`✓ "${rating.title}" aggiunto a Da Vedere`);
+            } else {
+              currentWatchlist.delete(matchKey);
+              currentWatchlist.delete(titleKey);
+              showToast(`Rimosso da Da Vedere`);
+            }
+            updateWatchlistButtons();
+          }
+        });
+      });
+
+      group.appendChild(badge);
+      group.appendChild(bookmarkBtn);
+
       // Ensure relative positioning on card container
       if (window.getComputedStyle(card).position === 'static') {
         card.style.position = 'relative';
       }
-      card.appendChild(badge);
+      card.appendChild(group);
     });
   }
 
@@ -309,6 +439,11 @@
       if (!config.showBobRatings) {
         bobRow.style.display = 'none';
       }
+
+      const netflixId = extractNetflixId(bobCard);
+      const matchKey = netflixId || rating.title.toLowerCase();
+      const titleKey = rating.title.toLowerCase();
+      const isSaved = currentWatchlist.has(matchKey) || currentWatchlist.has(titleKey);
 
       const imdbUrl = rating.imdbId 
         ? `https://www.imdb.com/title/${rating.imdbId}/`
@@ -344,6 +479,13 @@
         `;
       }
 
+      // Add Watchlist Pill
+      pillsHtml += `
+        <button type="button" class="flixratings-pill pill-watchlist ${isSaved ? 'active' : ''}" data-match-key="${matchKey}" data-title-key="${titleKey}">
+          <span>${isSaved ? '✓ Nella lista Da Vedere' : '+ Salva in Da Vedere'}</span>
+        </button>
+      `;
+
       if (rating.awards) {
         pillsHtml += `
           <div class="flixratings-awards-text">
@@ -355,6 +497,38 @@
 
       bobRow.innerHTML = pillsHtml;
       bobRow.addEventListener('click', (e) => e.stopPropagation());
+
+      const bobWatchlistBtn = bobRow.querySelector('.pill-watchlist');
+      if (bobWatchlistBtn) {
+        bobWatchlistBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          const item = {
+            netflixId: netflixId || null,
+            title: rating.title,
+            year: rating.year || null,
+            imdbRating: rating.imdbRating || null,
+            rottenTomatoes: rating.rottenTomatoes || null,
+            metacritic: rating.metacritic || null,
+            imdbId: rating.imdbId || null,
+            netflixUrl: netflixId ? `https://www.netflix.com/title/${netflixId}` : window.location.href
+          };
+          chrome.runtime.sendMessage({ type: 'TOGGLE_WATCHLIST', item }, (res) => {
+            if (res && res.success) {
+              if (res.inWatchlist) {
+                currentWatchlist.add(matchKey);
+                currentWatchlist.add(titleKey);
+                showToast(`✓ "${rating.title}" aggiunto a Da Vedere`);
+              } else {
+                currentWatchlist.delete(matchKey);
+                currentWatchlist.delete(titleKey);
+                showToast(`Rimosso da Da Vedere`);
+              }
+              updateWatchlistButtons();
+            }
+          });
+        });
+      }
 
       if (metaContainer.firstChild) {
         metaContainer.insertBefore(bobRow, metaContainer.firstChild);
@@ -386,7 +560,7 @@
         continue;
       }
 
-      if (!card.querySelector('.flixratings-card-badge')) {
+      if (!card.querySelector('.flixratings-badge-group, .flixratings-card-badge')) {
         processCard(card);
       }
     }
@@ -436,5 +610,5 @@
     start();
   }
 
-  console.log('[FlixRatings v0.5.0] Content script active on Netflix.');
+  console.log('[FlixRatings v0.6.0] Content script active with Watchlist support.');
 })();
